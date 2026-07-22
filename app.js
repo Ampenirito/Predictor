@@ -258,11 +258,20 @@ class PatternEngine {
 class StorageManager {
   static SAVE_KEY = 'aetherpredict_data';
   static DEPTH_KEY = 'aetherpredict_depth';
+  static GEMINI_KEY = 'aetherpredict_geminikey';
 
   static save(history, depth) {
     const rawActuals = history.map(g => g.actual);
     localStorage.setItem(this.SAVE_KEY, JSON.stringify(rawActuals));
     localStorage.setItem(this.DEPTH_KEY, depth.toString());
+  }
+
+  static saveGeminiKey(key) {
+    localStorage.setItem(this.GEMINI_KEY, key);
+  }
+
+  static getGeminiKey() {
+    return localStorage.getItem(this.GEMINI_KEY) || '';
   }
 
   static load() {
@@ -303,6 +312,12 @@ class UIController {
       depthSelect.value = loadedData.depth.toString();
     }
 
+    // Populate saved Gemini Key
+    const keyInput = document.getElementById('gemini-api-key-input');
+    if (keyInput) {
+      keyInput.value = StorageManager.getGeminiKey();
+    }
+
     if (loadedData.rawSequence && loadedData.rawSequence.length > 0) {
       this.engine.loadRawSequence(loadedData.rawSequence);
       this.showToast('Data loaded from storage', 'info');
@@ -331,6 +346,16 @@ class UIController {
         this.addOutcome('B');
       }
     });
+
+    // Gemini API Key Save Button
+    document.getElementById('btn-save-gemini-key').addEventListener('click', () => {
+      const val = document.getElementById('gemini-api-key-input').value.trim();
+      StorageManager.saveGeminiKey(val);
+      this.showToast('Gemini API key saved locally!', 'success');
+    });
+
+    // Ask Gemini AI Button
+    document.getElementById('btn-ask-gemini').addEventListener('click', () => this.askGemini());
 
     // Pattern depth select
     document.getElementById('pattern-depth').addEventListener('change', (e) => {
@@ -438,6 +463,57 @@ class UIController {
         this.showToast('Could not find any "R" or "B" in the text.', 'error');
       }
     });
+  }
+
+  async askGemini() {
+    const rawActuals = this.engine.history.map(g => g.actual);
+    if (rawActuals.length === 0) {
+      this.showToast('Add some outcomes before asking Gemini AI!', 'error');
+      return;
+    }
+
+    const btn = document.getElementById('btn-ask-gemini');
+    const box = document.getElementById('gemini-response-box');
+    const badge = document.getElementById('gemini-predicted-badge');
+    const reasoningText = document.getElementById('gemini-reasoning-text');
+    const userApiKey = StorageManager.getGeminiKey();
+
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Gemini is analyzing patterns...';
+
+    try {
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          history: rawActuals,
+          userApiKey: userApiKey
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Failed to analyze with Gemini AI');
+      }
+
+      const pred = data.prediction;
+      const isRed = pred.predictedColor === 'R';
+      
+      badge.className = `cell-badge ${isRed ? 'badge-red' : 'badge-blue'}`;
+      badge.textContent = `${isRed ? 'RED' : 'BLUE'} (${pred.confidencePercent}%)`;
+      reasoningText.textContent = pred.reasoning;
+
+      box.style.display = 'block';
+      this.showToast('Gemini AI analysis complete!', 'success');
+
+    } catch (err) {
+      console.error(err);
+      this.showToast(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '✨ Analyze Sequence with Gemini AI';
+    }
   }
 
   addOutcome(color) {

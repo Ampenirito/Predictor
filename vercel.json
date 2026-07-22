@@ -1,3 +1,13 @@
 {
-  "cleanUrls": true
+  "version": 2,
+  "builds": [
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "styles.css", "use": "@vercel/static" },
+    { "src": "app.js", "use": "@vercel/static" },
+    { "src": "api/gemini.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/gemini", "dest": "/api/gemini.js" },
+    { "src": "/(.*)", "dest": "/$1" }
+  ]
 }

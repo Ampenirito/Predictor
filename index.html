@@ -137,6 +137,26 @@
             <div style="color: var(--text-muted); font-size: 13px; font-style: italic; text-align: center; padding: 20px 0;">No active patterns matching.</div>
           </div>
         </section>
+
+        <!-- GEMINI AI PATTERN ADVISOR -->
+        <section class="glass-panel stats-detail-card" aria-label="Gemini AI Analysis">
+          <div class="panel-title">
+            <span>🤖 Gemini AI Advisor</span>
+            <span style="font-size: 11px; color: var(--color-blue); font-weight: 600;">Deep Neural Analysis</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <button class="btn-ui btn-ui-accent" id="btn-ask-gemini" style="width: 100%; justify-content: center; height: 42px; font-size: 14px;">
+              ✨ Analyze Sequence with Gemini AI
+            </button>
+            <div id="gemini-response-box" style="display: none; background: rgba(0, 240, 255, 0.05); border: 1px solid rgba(0, 240, 255, 0.2); border-radius: 8px; padding: 14px; font-size: 13px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-weight: 700; color: var(--text-primary);">AI Prediction:</span>
+                <span id="gemini-predicted-badge" class="cell-badge badge-red">RED (75%)</span>
+              </div>
+              <p id="gemini-reasoning-text" style="color: var(--text-secondary); line-height: 1.5; font-size: 12.5px;">Gemini reasoning will appear here...</p>
+            </div>
+          </div>
+        </section>
         
       </div>
       
@@ -185,6 +205,16 @@
             </select>
           </div>
           <p style="font-size: 11px; color: var(--text-muted);">Longer depths scan for larger recurring sequences, but require more history. Combined weighting applies automatically.</p>
+        </div>
+
+        <!-- Gemini API Key Setup -->
+        <div class="utility-section">
+          <span class="utility-title">Google Gemini API Key</span>
+          <div style="display: flex; gap: 8px;">
+            <input type="password" id="gemini-api-key-input" placeholder="AIzaSy... (Optional if GEMINI_API_KEY set on Vercel)" style="flex: 1; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; color: var(--text-primary); font-family: inherit; font-size: 13px;">
+            <button class="btn-ui btn-ui-primary" id="btn-save-gemini-key">Save Key</button>
+          </div>
+          <p style="font-size: 11px; color: var(--text-muted);">Key is saved locally in your browser. Or configure <code style="color: var(--color-blue);">GEMINI_API_KEY</code> in Vercel Environment Variables.</p>
         </div>
 
         <!-- Demo Generator -->

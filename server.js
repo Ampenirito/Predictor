@@ -1,4 +1,4 @@
-// AetherPredict: Lightweight Local Web Server
+// AetherPredict: Lightweight Local Web Server & API Proxy
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -13,12 +13,41 @@ const MIME_TYPES = {
   '.png': 'image/png'
 };
 
+// Import Vercel API handler for local proxying
+const geminiHandler = require('./api/gemini.js');
+
 const server = http.createServer((req, res) => {
-  // Normalize request URL path to find the file
-  let reqPath = req.url.split('?')[0]; // Strip query parameters
+  let reqPath = req.url.split('?')[0];
+
+  // Route API requests to Gemini handler locally
+  if (reqPath === '/api/gemini') {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+      try {
+        req.body = body ? JSON.parse(body) : {};
+      } catch (e) {
+        req.body = {};
+      }
+
+      // Mock res methods for Vercel handler compatibility
+      res.status = (code) => {
+        res.statusCode = code;
+        return res;
+      };
+      res.json = (data) => {
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify(data));
+      };
+
+      geminiHandler(req, res);
+    });
+    return;
+  }
+
+  // Serve static files
   let filePath = path.join(__dirname, reqPath === '/' ? 'index.html' : reqPath);
 
-  // Prevent directory traversal attacks
   if (!filePath.startsWith(__dirname)) {
     res.writeHead(403, { 'Content-Type': 'text/plain' });
     res.end('Forbidden');
