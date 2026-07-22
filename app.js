@@ -351,6 +351,39 @@ class PatternEngine {
     const correctCount = withPrediction.filter(g => g.correct === true).length;
     const winrate = predictedCount > 0 ? Math.round((correctCount / predictedCount) * 100) : 0;
 
+    // Helper for computing winrates for tone prediction
+    const computeToneStats = (predicate) => {
+      const matched = this.history.filter(predicate);
+      const wins = matched.filter(g => g.correct === true);
+      const totalCount = matched.length;
+      const winCount = wins.length;
+      const rate = totalCount > 0 ? Math.round((winCount / totalCount) * 100) : 0;
+      return { total: totalCount, wins: winCount, rate };
+    };
+
+    // Left Side Tone Win Rates
+    const leftDark = computeToneStats(g => (g.leftTone === 'dark' || g.leftTone === 'darker') && g.predicted !== null);
+    const leftLight = computeToneStats(g => g.leftTone === 'light' && g.predicted !== null);
+    const leftSame = computeToneStats(g => g.leftTone === 'same' && g.predicted !== null);
+
+    // Right Side Tone Win Rates
+    const rightDark = computeToneStats(g => (g.rightTone === 'dark' || g.rightTone === 'darker') && g.predicted !== null);
+    const rightLight = computeToneStats(g => g.rightTone === 'light' && g.predicted !== null);
+    const rightSame = computeToneStats(g => g.rightTone === 'same' && g.predicted !== null);
+
+    // Overall Tone Win Rates (Left + Right combined)
+    const overallDarkCount = leftDark.total + rightDark.total;
+    const overallDarkWins = leftDark.wins + rightDark.wins;
+    const overallDarkRate = overallDarkCount > 0 ? Math.round((overallDarkWins / overallDarkCount) * 100) : 0;
+
+    const overallLightCount = leftLight.total + rightLight.total;
+    const overallLightWins = leftLight.wins + rightLight.wins;
+    const overallLightRate = overallLightCount > 0 ? Math.round((overallLightWins / overallLightCount) * 100) : 0;
+
+    const overallSameCount = leftSame.total + rightSame.total;
+    const overallSameWins = leftSame.wins + rightSame.wins;
+    const overallSameRate = overallSameCount > 0 ? Math.round((overallSameWins / overallSameCount) * 100) : 0;
+
     let currentStreak = 0;
     let streakType = null; // 'win' or 'loss'
 
@@ -391,7 +424,16 @@ class PatternEngine {
       correctCount,
       winrate,
       predictionStreak: currentStreak > 0 ? { count: currentStreak, type: streakType } : null,
-      outcomeStreak: outcomeStreak > 0 ? { count: outcomeStreak, type: outcomeType } : null
+      outcomeStreak: outcomeStreak > 0 ? { count: outcomeStreak, type: outcomeType } : null,
+      overallDark: { rate: overallDarkRate, wins: overallDarkWins, total: overallDarkCount },
+      overallLight: { rate: overallLightRate, wins: overallLightWins, total: overallLightCount },
+      overallSame: { rate: overallSameRate, wins: overallSameWins, total: overallSameCount },
+      leftDark,
+      leftLight,
+      leftSame,
+      rightDark,
+      rightLight,
+      rightSame
     };
   }
 }
@@ -1092,6 +1134,26 @@ class UIController {
     document.getElementById('stat-predicted-games').textContent = stats.predictedCount;
     document.getElementById('stat-correct-predict').textContent = stats.correctCount;
     document.getElementById('stat-winrate-gauge').textContent = `${stats.winrate}%`;
+
+    // --- UPDATE TONE WIN RATE ANALYTICS CARD ---
+    const setStatText = (valId, ratioId, statObj) => {
+      const valEl = document.getElementById(valId);
+      const ratioEl = document.getElementById(ratioId);
+      if (valEl && statObj) valEl.textContent = `${statObj.rate}%`;
+      if (ratioEl && statObj) ratioEl.textContent = `(${statObj.wins}/${statObj.total})`;
+    };
+
+    setStatText('stat-overall-dark-winrate', 'stat-overall-dark-ratio', stats.overallDark);
+    setStatText('stat-overall-light-winrate', 'stat-overall-light-ratio', stats.overallLight);
+    setStatText('stat-overall-same-winrate', 'stat-overall-same-ratio', stats.overallSame);
+
+    setStatText('stat-left-dark-winrate', 'stat-left-dark-ratio', stats.leftDark);
+    setStatText('stat-left-light-winrate', 'stat-left-light-ratio', stats.leftLight);
+    setStatText('stat-left-same-winrate', 'stat-left-same-ratio', stats.leftSame);
+
+    setStatText('stat-right-dark-winrate', 'stat-right-dark-ratio', stats.rightDark);
+    setStatText('stat-right-light-winrate', 'stat-right-light-ratio', stats.rightLight);
+    setStatText('stat-right-same-winrate', 'stat-right-same-ratio', stats.rightSame);
 
     // Current trend streak
     const trendEl = document.getElementById('stat-trend-streak');

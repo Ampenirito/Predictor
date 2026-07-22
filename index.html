@@ -241,6 +241,80 @@
           </div>
         </section>
 
+        <!-- DUAL-SIDE TONE WIN RATE ANALYTICS CARD -->
+        <section class="glass-panel stats-detail-card" aria-label="Tone Win Rate Performance">
+          <div class="panel-title">
+            <span>🎯 Tone Win Rate Performance</span>
+            <span style="font-size: 11px; color: var(--text-muted);">Side & tone win accuracy</span>
+          </div>
+          
+          <!-- Overall Tone Win Rates -->
+          <div style="margin-bottom: 14px; background: rgba(255, 255, 255, 0.03); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+            <div style="font-size: 11.5px; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px;">OVERALL TONE PREDICTION WIN RATE</div>
+            <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 0;">
+              <div class="stat-item" style="padding: 6px;">
+                <span class="stat-label" style="font-size: 10px;">🌑 DARK</span>
+                <span class="stat-val" id="stat-overall-dark-winrate" style="font-size: 15px;">0%</span>
+                <span style="font-size: 9.5px; color: var(--text-muted);" id="stat-overall-dark-ratio">(0/0)</span>
+              </div>
+              <div class="stat-item" style="padding: 6px;">
+                <span class="stat-label" style="font-size: 10px;">☀️ LIGHT</span>
+                <span class="stat-val" id="stat-overall-light-winrate" style="font-size: 15px; color: var(--color-gold);">0%</span>
+                <span style="font-size: 9.5px; color: var(--text-muted);" id="stat-overall-light-ratio">(0/0)</span>
+              </div>
+              <div class="stat-item" style="padding: 6px;">
+                <span class="stat-label" style="font-size: 10px;">🔄 SAME</span>
+                <span class="stat-val" id="stat-overall-same-winrate" style="font-size: 15px; color: #38bdf8;">0%</span>
+                <span style="font-size: 9.5px; color: var(--text-muted);" id="stat-overall-same-ratio">(0/0)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Left Side Tone Win Rates -->
+          <div style="margin-bottom: 12px; background: rgba(239, 68, 68, 0.06); padding: 10px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.2);">
+            <div style="font-size: 11.5px; font-weight: 700; color: #ff7683; margin-bottom: 6px;">🔴 LEFT SIDE TONE WIN RATES</div>
+            <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 0;">
+              <div class="stat-item" style="padding: 6px;">
+                <span class="stat-label" style="font-size: 10px;">🌑 Dark</span>
+                <span class="stat-val" id="stat-left-dark-winrate" style="font-size: 14px;">0%</span>
+                <span style="font-size: 9.5px; color: var(--text-muted);" id="stat-left-dark-ratio">(0/0)</span>
+              </div>
+              <div class="stat-item" style="padding: 6px;">
+                <span class="stat-label" style="font-size: 10px;">☀️ Light</span>
+                <span class="stat-val" id="stat-left-light-winrate" style="font-size: 14px; color: var(--color-gold);">0%</span>
+                <span style="font-size: 9.5px; color: var(--text-muted);" id="stat-left-light-ratio">(0/0)</span>
+              </div>
+              <div class="stat-item" style="padding: 6px;">
+                <span class="stat-label" style="font-size: 10px;">🔄 Same</span>
+                <span class="stat-val" id="stat-left-same-winrate" style="font-size: 14px; color: #38bdf8;">0%</span>
+                <span style="font-size: 9.5px; color: var(--text-muted);" id="stat-left-same-ratio">(0/0)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Side Tone Win Rates -->
+          <div style="background: rgba(0, 240, 255, 0.06); padding: 10px; border-radius: 8px; border: 1px solid rgba(0, 240, 255, 0.2);">
+            <div style="font-size: 11.5px; font-weight: 700; color: #6bf2ff; margin-bottom: 6px;">🔵 RIGHT SIDE TONE WIN RATES</div>
+            <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 0;">
+              <div class="stat-item" style="padding: 6px;">
+                <span class="stat-label" style="font-size: 10px;">🌑 Dark</span>
+                <span class="stat-val" id="stat-right-dark-winrate" style="font-size: 14px;">0%</span>
+                <span style="font-size: 9.5px; color: var(--text-muted);" id="stat-right-dark-ratio">(0/0)</span>
+              </div>
+              <div class="stat-item" style="padding: 6px;">
+                <span class="stat-label" style="font-size: 10px;">☀️ Light</span>
+                <span class="stat-val" id="stat-right-light-winrate" style="font-size: 14px; color: var(--color-gold);">0%</span>
+                <span style="font-size: 9.5px; color: var(--text-muted);" id="stat-right-light-ratio">(0/0)</span>
+              </div>
+              <div class="stat-item" style="padding: 6px;">
+                <span class="stat-label" style="font-size: 10px;">🔄 Same</span>
+                <span class="stat-val" id="stat-right-same-winrate" style="font-size: 14px; color: #38bdf8;">0%</span>
+                <span style="font-size: 9.5px; color: var(--text-muted);" id="stat-right-same-ratio">(0/0)</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- PATTERN BREAKDOWN / EXPLANATION -->
         <section class="glass-panel stats-detail-card" aria-label="Pattern Explanation">
           <div class="panel-title">
