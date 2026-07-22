@@ -55,8 +55,13 @@
             <div class="orb-ring orb-ring-2"></div>
           </div>
 
-          <!-- Probability Split bar -->
-          <div class="probability-bar-container">
+          <!-- Tone Prediction Badge -->
+          <div id="prediction-tone-badge" class="cell-badge badge-neutral" style="margin-top: -12px; margin-bottom: 16px; font-size: 12px; padding: 4px 12px;">
+            Tone Forecast: 🌑 Darker (50%)
+          </div>
+
+          <!-- Color Probability Split bar -->
+          <div class="probability-bar-container" style="margin-bottom: 12px;">
             <div class="probability-labels">
               <span class="prob-red-lbl">RED: <span id="prob-red-percent">50%</span></span>
               <span class="prob-blue-lbl">BLUE: <span id="prob-blue-percent">50%</span></span>
@@ -67,9 +72,27 @@
             </div>
           </div>
 
+          <!-- Tone Probability Split bar -->
+          <div class="probability-bar-container">
+            <div class="probability-labels" style="font-size: 11px;">
+              <span style="color: #cbd5e1;">🌑 DARKER: <span id="prob-dark-percent">50%</span></span>
+              <span style="color: #fde047;">☀️ LIGHT: <span id="prob-light-percent">50%</span></span>
+            </div>
+            <div class="probability-split-track" style="height: 6px;">
+              <div class="probability-split-fill" id="prob-fill-dark" style="width: 50%; background: linear-gradient(90deg, #334155, #64748b);"></div>
+              <div class="probability-split-fill" id="prob-fill-light" style="width: 50%; background: linear-gradient(90deg, #eab308, #fef08a);"></div>
+            </div>
+          </div>
+
           <!-- Interactive Outcome Logging Buttons -->
           <div class="action-panel">
-            <div class="action-label">Record the actual outcome of the round:</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span class="action-label" style="text-align: left; margin: 0;">Record Outcome & Tone:</span>
+              <div class="tone-toggle-wrap">
+                <button class="btn-tone-toggle active" id="btn-tone-dark" type="button">🌑 Darker</button>
+                <button class="btn-tone-toggle" id="btn-tone-light" type="button">☀️ Light</button>
+              </div>
+            </div>
             <div class="outcome-buttons">
               <button class="btn-outcome btn-red" id="btn-outcome-red" title="Press 'R' or Left Arrow">
                 🔴 RED WON (R)

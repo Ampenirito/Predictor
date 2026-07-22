@@ -991,3 +991,50 @@ footer {
   border: 1px solid var(--border-color);
 }
 
+/* Tone Selection & Styling */
+.tone-toggle-wrap {
+  display: inline-flex;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.btn-tone-toggle {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-tone-toggle:hover {
+  color: var(--text-secondary);
+}
+
+.btn-tone-toggle.active {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.timeline-node.node-light {
+  border-color: rgba(254, 240, 138, 0.8) !important;
+  box-shadow: 0 0 12px rgba(234, 179, 8, 0.4) !important;
+}
+
+.timeline-node.node-light::before {
+  content: '☀️';
+  position: absolute;
+  top: -6px;
+  left: -5px;
+  font-size: 10px;
+  pointer-events: none;
+}
+
+
