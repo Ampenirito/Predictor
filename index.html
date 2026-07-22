@@ -84,8 +84,18 @@
         <!-- TIMELINE VISUALIZER CARD -->
         <section class="glass-panel timeline-card" aria-label="Timeline visualization">
           <div class="panel-title">
-            <span>Recent Outcomes (Timeline)</span>
-            <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Click any dot to delete it from history</span>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span>Recent Outcomes (Timeline)</span>
+              <div class="select-wrapper" style="width: auto;">
+                <select class="custom-select" id="timeline-limit-select" aria-label="Limit timeline view" style="font-size: 11px; padding: 4px 24px 4px 10px;">
+                  <option value="30" selected>Last 30</option>
+                  <option value="60">Last 60</option>
+                  <option value="100">Last 100</option>
+                  <option value="all">All History</option>
+                </select>
+              </div>
+            </div>
+            <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Click dot to delete • Wraps multi-line</span>
           </div>
           <div class="timeline-scroll" id="timeline-scroll">
             <div class="timeline-empty">No records. Start clicking outcomes above to populate timeline.</div>

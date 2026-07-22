@@ -428,6 +428,12 @@ class UIController {
     // Ask Gemini AI Button
     document.getElementById('btn-ask-gemini').addEventListener('click', () => this.askGemini());
 
+    // Timeline limit select
+    document.getElementById('timeline-limit-select')?.addEventListener('change', (e) => {
+      this.timelineLimit = e.target.value;
+      this.render();
+    });
+
     // Pattern depth select
     document.getElementById('pattern-depth').addEventListener('change', (e) => {
       const val = parseInt(e.target.value);
@@ -873,8 +879,15 @@ class UIController {
       emptyMsg.textContent = 'No records. Start clicking outcomes above to populate timeline.';
       timelineScroll.appendChild(emptyMsg);
     } else {
-      // Render timeline nodes (recent 30 items)
-      const recentHistory = this.engine.history.slice(-30);
+      // Determine slice count based on limit selector
+      let recentHistory = this.engine.history;
+      const limit = this.timelineLimit || '30';
+
+      if (limit !== 'all') {
+        const count = parseInt(limit) || 30;
+        recentHistory = this.engine.history.slice(-count);
+      }
+
       recentHistory.forEach(game => {
         const node = document.createElement('div');
         node.className = `timeline-node ${game.actual === 'R' ? 'node-red' : 'node-blue'}`;
@@ -899,9 +912,9 @@ class UIController {
         timelineScroll.appendChild(node);
       });
 
-      // Scroll timeline to the end
+      // Scroll timeline to the bottom (newest items)
       setTimeout(() => {
-        timelineScroll.scrollLeft = timelineScroll.scrollWidth;
+        timelineScroll.scrollTop = timelineScroll.scrollHeight;
       }, 50);
     }
 
