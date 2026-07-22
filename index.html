@@ -91,6 +91,45 @@
             <div class="timeline-empty">No records. Start clicking outcomes above to populate timeline.</div>
           </div>
         </section>
+
+        <!-- IMAGE & SCREENSHOT PATTERN SCANNER -->
+        <section class="glass-panel scanner-card" aria-label="Image Pattern Scanner">
+          <div class="panel-title">
+            <span>📷 AI Screenshot & Image Pattern Scanner</span>
+            <span style="font-size: 11px; color: var(--color-blue); font-weight: 600;">Automated Pattern Extraction</span>
+          </div>
+
+          <!-- Dropzone / Paste Area -->
+          <div class="drop-zone" id="image-drop-zone">
+            <span class="drop-zone-icon">📋 / 📁</span>
+            <span class="drop-zone-title">Click to Upload, Drag & Drop, or Press Ctrl+V to Paste Screenshot</span>
+            <span class="drop-zone-subtitle">Extracts Red & Blue outcomes automatically from numbered scoreboards or charts</span>
+            <input type="file" id="image-file-input" accept="image/*" style="display: none;">
+          </div>
+
+          <!-- Image Preview Wrapper -->
+          <div class="image-preview-wrapper" id="image-preview-container" style="display: none;">
+            <img id="image-preview-element" src="" alt="Screenshot Preview">
+            <button class="btn-remove-image" id="btn-remove-image" title="Remove image">×</button>
+          </div>
+
+          <button class="btn-ui btn-ui-accent" id="btn-scan-image" style="width: 100%; justify-content: center; height: 42px; font-size: 14px; display: none;">
+            🔍 Extract Sequence from Image with Vision AI
+          </button>
+
+          <!-- Detected Output Results Bar -->
+          <div id="detected-results-box" style="display: none; flex-direction: column; gap: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span id="detected-summary-text" style="font-size: 13px; color: var(--text-secondary); font-weight: 600;">Detected 0 outcomes</span>
+              <button class="btn-ui btn-ui-accent" id="btn-import-detected" style="padding: 6px 14px; font-size: 12px;">
+                ⚡ Add Sequence to Database
+              </button>
+            </div>
+            <div class="detected-chips-wrapper" id="detected-chips-container">
+              <!-- Rendered chips -->
+            </div>
+          </div>
+        </section>
         
       </div>
 

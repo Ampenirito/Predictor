@@ -298,6 +298,9 @@ class StorageManager {
 class UIController {
   constructor() {
     this.engine = new PatternEngine();
+    this.currentImageBase64 = null;
+    this.currentImageMime = 'image/png';
+    this.detectedSequence = [];
     this.init();
   }
 
@@ -345,6 +348,74 @@ class UIController {
       } else if (e.key === 'b' || e.key === 'B' || e.key === 'ArrowRight') {
         this.addOutcome('B');
       }
+    });
+
+    // --- IMAGE & SCREENSHOT PATTERN SCANNER LISTENERS ---
+    const dropZone = document.getElementById('image-drop-zone');
+    const fileInput = document.getElementById('image-file-input');
+
+    if (dropZone && fileInput) {
+      dropZone.addEventListener('click', () => fileInput.click());
+
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          this.handleImageFile(e.target.files[0]);
+        }
+      });
+
+      // Drag and Drop
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          dropZone.classList.add('drop-zone-active');
+        });
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          dropZone.classList.remove('drop-zone-active');
+        });
+      });
+
+      dropZone.addEventListener('drop', (e) => {
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+          this.handleImageFile(e.dataTransfer.files[0]);
+        }
+      });
+    }
+
+    // Global Clipboard Paste Listener (Ctrl+V / Cmd+V)
+    window.addEventListener('paste', (e) => {
+      // Ignore if user is pasting text into an input or textarea
+      if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+        return;
+      }
+      const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+      for (const item of items) {
+        if (item.type.indexOf('image') === 0) {
+          const file = item.getAsFile();
+          if (file) {
+            this.handleImageFile(file);
+            this.showToast('Pasted screenshot from clipboard! 📋', 'success');
+          }
+        }
+      }
+    });
+
+    // Image removal button
+    document.getElementById('btn-remove-image')?.addEventListener('click', () => {
+      this.clearImagePreview();
+    });
+
+    // Scan Image button
+    document.getElementById('btn-scan-image')?.addEventListener('click', () => {
+      this.scanImageWithVisionAI();
+    });
+
+    // Import detected outcomes button
+    document.getElementById('btn-import-detected')?.addEventListener('click', () => {
+      this.importDetectedSequence();
     });
 
     // Gemini API Key Save Button
@@ -514,6 +585,157 @@ class UIController {
       btn.disabled = false;
       btn.innerHTML = '✨ Analyze Sequence with Gemini AI';
     }
+  }
+
+  // --- IMAGE PATTERN SCANNER METHODS ---
+  handleImageFile(file) {
+    if (!file || !file.type.startsWith('image/')) {
+      this.showToast('Please select a valid image file', 'error');
+      return;
+    }
+
+    this.currentImageMime = file.type || 'image/png';
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      this.currentImageBase64 = e.target.result;
+
+      // Update UI preview
+      const previewContainer = document.getElementById('image-preview-container');
+      const previewImg = document.getElementById('image-preview-element');
+      const scanBtn = document.getElementById('btn-scan-image');
+      const dropZone = document.getElementById('image-drop-zone');
+
+      if (previewImg && previewContainer) {
+        previewImg.src = this.currentImageBase64;
+        previewContainer.style.display = 'flex';
+        dropZone.style.display = 'none';
+        if (scanBtn) scanBtn.style.display = 'flex';
+      }
+
+      this.showToast('Image loaded! Click "Extract Sequence" to scan.', 'info');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  clearImagePreview() {
+    this.currentImageBase64 = null;
+    this.detectedSequence = [];
+
+    const previewContainer = document.getElementById('image-preview-container');
+    const scanBtn = document.getElementById('btn-scan-image');
+    const dropZone = document.getElementById('image-drop-zone');
+    const resultsBox = document.getElementById('detected-results-box');
+
+    if (previewContainer) previewContainer.style.display = 'none';
+    if (dropZone) dropZone.style.display = 'flex';
+    if (scanBtn) scanBtn.style.display = 'none';
+    if (resultsBox) resultsBox.style.display = 'none';
+
+    const fileInput = document.getElementById('image-file-input');
+    if (fileInput) fileInput.value = '';
+  }
+
+  async scanImageWithVisionAI() {
+    if (!this.currentImageBase64) {
+      this.showToast('No image loaded to scan!', 'error');
+      return;
+    }
+
+    const btn = document.getElementById('btn-scan-image');
+    const resultsBox = document.getElementById('detected-results-box');
+    const userApiKey = StorageManager.getGeminiKey();
+
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Scanning Image with Vision AI...';
+
+    try {
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: 'vision',
+          imageBase64: this.currentImageBase64,
+          mimeType: this.currentImageMime,
+          userApiKey: userApiKey
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Vision extraction failed.');
+      }
+
+      this.detectedSequence = data.detectedSequence || [];
+      
+      if (this.detectedSequence.length === 0) {
+        this.showToast('No Red/Blue outcomes detected in this image. Try another screenshot.', 'error');
+      } else {
+        this.renderDetectedChips(data.summary);
+        resultsBox.style.display = 'flex';
+        this.showToast(`Extracted ${this.detectedSequence.length} outcomes!`, 'success');
+      }
+
+    } catch (err) {
+      console.error(err);
+      this.showToast(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '🔍 Extract Sequence from Image with Vision AI';
+    }
+  }
+
+  renderDetectedChips(summary) {
+    const container = document.getElementById('detected-chips-container');
+    const summaryEl = document.getElementById('detected-summary-text');
+    if (!container) return;
+
+    if (summaryEl) {
+      summaryEl.textContent = summary || `Extracted ${this.detectedSequence.length} outcomes`;
+    }
+
+    container.innerHTML = '';
+    this.detectedSequence.forEach((val, idx) => {
+      const badge = document.createElement('span');
+      badge.className = `cell-badge ${val === 'R' ? 'badge-red' : 'badge-blue'}`;
+      badge.style.cursor = 'pointer';
+      badge.style.userSelect = 'none';
+      badge.title = 'Click to toggle RED / BLUE, right-click to delete';
+      badge.textContent = `${idx + 1}. ${val === 'R' ? 'Red' : 'Blue'}`;
+
+      // Left click -> toggle Red / Blue
+      badge.addEventListener('click', () => {
+        this.detectedSequence[idx] = this.detectedSequence[idx] === 'R' ? 'B' : 'R';
+        this.renderDetectedChips(summary);
+      });
+
+      // Right click -> delete chip
+      badge.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        this.detectedSequence.splice(idx, 1);
+        this.renderDetectedChips(summary);
+      });
+
+      container.appendChild(badge);
+    });
+  }
+
+  importDetectedSequence() {
+    if (!this.detectedSequence || this.detectedSequence.length === 0) {
+      this.showToast('No detected outcomes to import!', 'error');
+      return;
+    }
+
+    // Append to existing sequence
+    const currentActuals = this.engine.history.map(g => g.actual);
+    const combined = [...currentActuals, ...this.detectedSequence];
+    
+    this.engine.loadRawSequence(combined);
+    this.saveState();
+    this.render();
+    
+    this.showToast(`Added ${this.detectedSequence.length} outcomes to database!`, 'success');
+    this.clearImagePreview();
   }
 
   addOutcome(color) {
