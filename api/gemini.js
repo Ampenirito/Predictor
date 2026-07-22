@@ -1,5 +1,38 @@
 // Vercel Serverless Function: Gemini API Proxy for Win/Loss Pattern Analysis & Multimodal Vision Scanning
 
+async function fetchGeminiWithFallback(apiKey, bodyPayload) {
+  // Model fallbacks in order of preference
+  const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-flash'];
+  let lastError = null;
+
+  for (const model of models) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyPayload)
+      });
+
+      if (response.ok) {
+        return await response.json();
+      }
+
+      const errText = await response.text();
+      lastError = `[${model}] Error (${response.status}): ${errText}`;
+      
+      // If error is not 404, throw or break
+      if (response.status !== 404) {
+        throw new Error(lastError);
+      }
+    } catch (e) {
+      lastError = e.message;
+    }
+  }
+
+  throw new Error(lastError || 'All Gemini model endpoints failed.');
+}
+
 module.exports = async (req, res) => {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -21,7 +54,7 @@ module.exports = async (req, res) => {
     const apiKey = process.env.GEMINI_API_KEY || userApiKey;
     if (!apiKey) {
       return res.status(401).json({ 
-        error: 'Missing Gemini API Key. Please provide your API key in System Settings or set GEMINI_API_KEY on Vercel.' 
+        error: 'Missing Gemini API Key. Please enter your API key in System Settings or set GEMINI_API_KEY on Vercel.' 
       });
     }
 
@@ -53,36 +86,27 @@ Respond ONLY with valid JSON in this exact structure without markdown backticks:
 }
 Note: "detectedSequence" MUST be an array containing strictly string values "R" or "B".`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { text: visionPrompt },
-                {
-                  inline_data: {
-                    mime_type: imageMime,
-                    data: cleanBase64
-                  }
+      const payload = {
+        contents: [
+          {
+            parts: [
+              { text: visionPrompt },
+              {
+                inline_data: {
+                  mime_type: imageMime,
+                  data: cleanBase64
                 }
-              ]
-            }
-          ],
-          generationConfig: {
-            temperature: 0.1,
-            responseMimeType: 'application/json'
+              }
+            ]
           }
-        })
-      });
+        ],
+        generationConfig: {
+          temperature: 0.1,
+          responseMimeType: 'application/json'
+        }
+      };
 
-      if (!response.ok) {
-        const errText = await response.text();
-        return res.status(response.status).json({ error: `Gemini Vision Error: ${errText}` });
-      }
-
-      const data = await response.json();
+      const data = await fetchGeminiWithFallback(apiKey, payload);
       const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
       if (!candidateText) {
@@ -122,28 +146,19 @@ Respond ONLY with valid JSON in this exact structure without markdown backticks:
 }
 Note: "predictedColor" MUST be either "R" or "B". "confidencePercent" MUST be an integer between 50 and 99.`;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [{ text: prompt }]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.2,
-          responseMimeType: 'application/json'
+    const payload = {
+      contents: [
+        {
+          parts: [{ text: prompt }]
         }
-      })
-    });
+      ],
+      generationConfig: {
+        temperature: 0.2,
+        responseMimeType: 'application/json'
+      }
+    };
 
-    if (!response.ok) {
-      const errText = await response.text();
-      return res.status(response.status).json({ error: `Gemini API Error: ${errText}` });
-    }
-
-    const data = await response.json();
+    const data = await fetchGeminiWithFallback(apiKey, payload);
     const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
     
     if (!candidateText) {
