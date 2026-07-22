@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AetherPredict | Premium Pattern Recognition Engine</title>
+  <meta name="description" content="Sleek, premium, high-performance pattern predictor using variable-order Markov chains to analyze wins and losses and compute outcome probabilities.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- HEADER -->
+    <header class="glass-panel">
+      <div class="logo-section">
+        <h1>Aether<span class="accent">Predict</span></h1>
+        <p>Advanced Pattern Analysis & Probability Engine</p>
+      </div>
+      
+      <!-- Top Overview Dashboard -->
+      <div class="overview-stats">
+        <div class="stat-mini">
+          <span class="label">Total Games</span>
+          <span class="value" id="overview-total-games">0</span>
+        </div>
+        <div class="stat-mini">
+          <span class="label">Winrate</span>
+          <span class="value highlight" id="overview-winrate">0%</span>
+        </div>
+        <div class="stat-mini">
+          <span class="label">Active Streak</span>
+          <span class="value" id="overview-streak">0</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- DASHBOARD MAIN GRID -->
+    <div class="dashboard-grid">
+      
+      <!-- LEFT COLUMN: PREDICTOR VIEW & TIMELINE -->
+      <div style="display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- PREDICTION DISPLAY CARD -->
+        <section class="glass-panel prediction-card" aria-label="Prediction Console">
+          <div class="prediction-title">Probability Forecast</div>
+          
+          <div class="prediction-orb-container">
+            <div class="prediction-orb predict-none" id="prediction-orb">
+              <span class="prediction-label" id="prediction-label">Awaiting</span>
+              <span class="prediction-value" id="prediction-value">DATA</span>
+              <span class="prediction-percentage" id="prediction-percentage" style="display: none;">50%</span>
+            </div>
+            <div class="orb-ring"></div>
+            <div class="orb-ring orb-ring-2"></div>
+          </div>
+
+          <!-- Probability Split bar -->
+          <div class="probability-bar-container">
+            <div class="probability-labels">
+              <span class="prob-red-lbl">RED: <span id="prob-red-percent">50%</span></span>
+              <span class="prob-blue-lbl">BLUE: <span id="prob-blue-percent">50%</span></span>
+            </div>
+            <div class="probability-split-track">
+              <div class="probability-split-fill fill-red" id="prob-fill-red" style="width: 50%;"></div>
+              <div class="probability-split-fill fill-blue" id="prob-fill-blue" style="width: 50%;"></div>
+            </div>
+          </div>
+
+          <!-- Interactive Outcome Logging Buttons -->
+          <div class="action-panel">
+            <div class="action-label">Record the actual outcome of the round:</div>
+            <div class="outcome-buttons">
+              <button class="btn-outcome btn-red" id="btn-outcome-red" title="Press 'R' or Left Arrow">
+                🔴 RED WON (R)
+              </button>
+              <button class="btn-outcome btn-blue" id="btn-outcome-blue" title="Press 'B' or Right Arrow">
+                🔵 BLUE WON (B)
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- TIMELINE VISUALIZER CARD -->
+        <section class="glass-panel timeline-card" aria-label="Timeline visualization">
+          <div class="panel-title">
+            <span>Recent Outcomes (Timeline)</span>
+            <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Click any dot to delete it from history</span>
+          </div>
+          <div class="timeline-scroll" id="timeline-scroll">
+            <div class="timeline-empty">No records. Start clicking outcomes above to populate timeline.</div>
+          </div>
+        </section>
+        
+      </div>
+
+      <!-- RIGHT COLUMN: ANALYTICS & PATTERN INSPECTOR -->
+      <div style="display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- DETAILED STATISTICS -->
+        <section class="glass-panel stats-detail-card" aria-label="Statistical Details">
+          <div class="panel-title">Performance Analytics</div>
+          
+          <div class="stats-grid">
+            <div class="stat-item">
+              <span class="stat-label">Total Logs</span>
+              <span class="stat-val" id="stat-total-games">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Predicted Games</span>
+              <span class="stat-val" id="stat-predicted-games">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Correct Predictions</span>
+              <span class="stat-val" id="stat-correct-predict">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Win Rate Gauge</span>
+              <span class="stat-val" id="stat-winrate-gauge" style="color: var(--color-gold);">0%</span>
+            </div>
+          </div>
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(255, 255, 255, 0.02); border-radius: 8px; border: 1px solid var(--border-color);">
+            <span style="font-size: 13px; color: var(--text-secondary); font-weight: 500;">Current Outcome Streak:</span>
+            <span id="stat-trend-streak" style="font-weight: 700; font-size: 14px;">None</span>
+          </div>
+        </section>
+
+        <!-- PATTERN BREAKDOWN / EXPLANATION -->
+        <section class="glass-panel stats-detail-card" aria-label="Pattern Explanation">
+          <div class="panel-title">
+            <span>Active Suffix Matches</span>
+            <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Engine depth breakdown</span>
+          </div>
+          <div class="pattern-breakdown-list" id="pattern-breakdown-list">
+            <!-- Populated dynamically via JS -->
+            <div style="color: var(--text-muted); font-size: 13px; font-style: italic; text-align: center; padding: 20px 0;">No active patterns matching.</div>
+          </div>
+        </section>
+        
+      </div>
+      
+    </div>
+
+    <!-- LOWER AREA: DATA MANAGEMENT -->
+    <div class="manager-grid">
+      
+      <!-- DATA HISTORY LISTING TABLE -->
+      <section class="glass-panel history-list-card" aria-label="Game Logs Table">
+        <div class="panel-title">Historical Game Database</div>
+        <div class="table-container">
+          <table id="history-table">
+            <thead>
+              <tr>
+                <th style="width: 15%;">Index</th>
+                <th style="width: 25%;">Outcome</th>
+                <th style="width: 25%;">Our Predict</th>
+                <th style="width: 35%;">Status / Control</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body">
+              <tr>
+                <td colspan="4" style="text-align: center; color: var(--text-muted); font-style: italic;">No records found.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- CONFIG & UTILITIES -->
+      <section class="glass-panel utilities-card" aria-label="Controls and Utilities">
+        <div class="panel-title">System Settings & Data Tools</div>
+        
+        <!-- Algorithm Depth Setup -->
+        <div class="utility-section">
+          <span class="utility-title">Max Pattern Depth (N-Gram Suffix)</span>
+          <div class="select-wrapper">
+            <select class="custom-select" id="pattern-depth" aria-label="Select pattern depth size">
+              <option value="2">2 (Basic Pattern Search)</option>
+              <option value="4">4 (Standard Search)</option>
+              <option value="6" selected>6 (Advanced Pattern Analysis)</option>
+              <option value="8">8 (Deep Scan)</option>
+              <option value="10">10 (Maximum Depth)</option>
+              <option value="12">12 (Extremely Specific)</option>
+            </select>
+          </div>
+          <p style="font-size: 11px; color: var(--text-muted);">Longer depths scan for larger recurring sequences, but require more history. Combined weighting applies automatically.</p>
+        </div>
+
+        <!-- Demo Generator -->
+        <div class="utility-section">
+          <span class="utility-title">Load Demo Datasets</span>
+          <div class="button-group-wrap">
+            <button class="btn-ui btn-ui-accent" id="btn-demo-alt" title="Load sequence: R B R B R B...">Alternating (1:1)</button>
+            <button class="btn-ui btn-ui-accent" id="btn-demo-streak" title="Load sequence: R R R R B B B B...">Streak (4:4)</button>
+            <button class="btn-ui btn-ui-accent" id="btn-demo-doublet" title="Load sequence: R R B B R R B B...">Doublets (2:2)</button>
+          </div>
+        </div>
+
+        <!-- System Reset & Import/Export -->
+        <div class="utility-section">
+          <span class="utility-title">Data Administration</span>
+          <div class="button-group-wrap">
+            <button class="btn-ui btn-ui-primary" id="btn-export-json">📤 Export JSON</button>
+            <button class="btn-ui btn-ui-primary" id="btn-import-text">✏️ Paste Text</button>
+            
+            <label class="btn-ui btn-ui-primary" style="display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">
+              📁 Upload JSON
+              <input type="file" id="btn-import-file" accept=".json" style="display: none;">
+            </label>
+            
+            <button class="btn-ui btn-ui-danger" id="btn-clear" style="margin-left: auto;">⚠️ Reset Database</button>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+
+    <!-- FOOTER -->
+    <footer>
+      <p>AetherPredict Engine &copy; 2026. All rights reserved. Created in partnership with Antigravity AI.</p>
+    </footer>
+
+  </div>
+
+  <!-- Toast Notification Overlay -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Javascript Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
