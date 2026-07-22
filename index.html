@@ -75,12 +75,14 @@
           <!-- Tone Probability Split bar -->
           <div class="probability-bar-container">
             <div class="probability-labels" style="font-size: 11px;">
-              <span style="color: #cbd5e1;">🌑 DARKER: <span id="prob-dark-percent">50%</span></span>
-              <span style="color: #fde047;">☀️ LIGHT: <span id="prob-light-percent">50%</span></span>
+              <span style="color: #cbd5e1;">🌑 DARK: <span id="prob-dark-percent">33%</span></span>
+              <span style="color: #fde047;">☀️ LIGHT: <span id="prob-light-percent">33%</span></span>
+              <span style="color: #38bdf8;">🔄 SAME: <span id="prob-same-percent">34%</span></span>
             </div>
-            <div class="probability-split-track" style="height: 6px;">
-              <div class="probability-split-fill" id="prob-fill-dark" style="width: 50%; background: linear-gradient(90deg, #334155, #64748b);"></div>
-              <div class="probability-split-fill" id="prob-fill-light" style="width: 50%; background: linear-gradient(90deg, #eab308, #fef08a);"></div>
+            <div class="probability-split-track" style="height: 6px; display: flex;">
+              <div class="probability-split-fill" id="prob-fill-dark" style="width: 33%; background: linear-gradient(90deg, #334155, #64748b);"></div>
+              <div class="probability-split-fill" id="prob-fill-light" style="width: 33%; background: linear-gradient(90deg, #eab308, #fef08a);"></div>
+              <div class="probability-split-fill" id="prob-fill-same" style="width: 34%; background: linear-gradient(90deg, #0284c7, #38bdf8);"></div>
             </div>
           </div>
 
@@ -91,6 +93,7 @@
               <div class="tone-toggle-wrap">
                 <button class="btn-tone-toggle active" id="btn-tone-dark" type="button">🌑 Darker</button>
                 <button class="btn-tone-toggle" id="btn-tone-light" type="button">☀️ Light</button>
+                <button class="btn-tone-toggle" id="btn-tone-same" type="button">🔄 Same</button>
               </div>
             </div>
             <div class="outcome-buttons">

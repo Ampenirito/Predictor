@@ -119,16 +119,17 @@ class PatternEngine {
     };
   }
 
-  // Scan history to predict the next Tone (Darker vs Light)
+  // Scan history to predict the next Tone (Darker vs Light vs Same)
   predictToneNext() {
     const totalGames = this.history.length;
     if (totalGames === 0) {
-      return { tone: 'dark', confidence: 50, darkPercent: 50, lightPercent: 50 };
+      return { tone: 'dark', confidence: 33, darkPercent: 33, lightPercent: 33, samePercent: 34 };
     }
 
     const toneSequence = this.history.map(g => g.tone || 'dark');
     let weightedDarkScore = 0;
     let weightedLightScore = 0;
+    let weightedSameScore = 0;
 
     for (let L = 1; L <= this.maxDepth; L++) {
       if (toneSequence.length < L) break;
@@ -136,6 +137,7 @@ class PatternEngine {
       const currentSuffix = toneSequence.slice(-L);
       let countD = 0;
       let countL = 0;
+      let countS = 0;
 
       for (let i = 0; i <= toneSequence.length - L - 1; i++) {
         const slice = toneSequence.slice(i, i + L);
@@ -143,60 +145,69 @@ class PatternEngine {
           const nextVal = toneSequence[i + L];
           if (nextVal === 'dark') countD++;
           if (nextVal === 'light') countL++;
+          if (nextVal === 'same') countS++;
         }
       }
 
-      const totalMatches = countD + countL;
+      const totalMatches = countD + countL + countS;
       if (totalMatches > 0) {
         const probD = countD / totalMatches;
         const probL = countL / totalMatches;
+        const probS = countS / totalMatches;
         const weight = Math.pow(L, 2) * totalMatches;
 
         weightedDarkScore += probD * weight;
         weightedLightScore += probL * weight;
+        weightedSameScore += probS * weight;
       }
     }
 
-    const totalWeight = weightedDarkScore + weightedLightScore;
-    let darkPercent = 50;
-    let lightPercent = 50;
+    const totalWeight = weightedDarkScore + weightedLightScore + weightedSameScore;
+    let darkPercent = 33;
+    let lightPercent = 33;
+    let samePercent = 34;
 
     if (totalWeight > 0) {
       darkPercent = Math.round((weightedDarkScore / totalWeight) * 100);
-      lightPercent = 100 - darkPercent;
+      lightPercent = Math.round((weightedLightScore / totalWeight) * 100);
+      samePercent = 100 - darkPercent - lightPercent;
     } else {
       let globalD = 0;
       let globalL = 0;
+      let globalS = 0;
       toneSequence.forEach(val => {
         if (val === 'dark') globalD++;
         if (val === 'light') globalL++;
+        if (val === 'same') globalS++;
       });
-      const globalTotal = globalD + globalL;
+      const globalTotal = globalD + globalL + globalS;
       if (globalTotal > 0) {
         darkPercent = Math.round((globalD / globalTotal) * 100);
-        lightPercent = 100 - darkPercent;
+        lightPercent = Math.round((globalL / globalTotal) * 100);
+        samePercent = 100 - darkPercent - lightPercent;
       }
     }
 
     let predictedTone = 'dark';
-    let confidence = 50;
+    let confidence = darkPercent;
 
-    if (darkPercent > lightPercent) {
-      predictedTone = 'dark';
-      confidence = darkPercent;
-    } else if (lightPercent > darkPercent) {
+    if (lightPercent > darkPercent && lightPercent >= samePercent) {
       predictedTone = 'light';
       confidence = lightPercent;
+    } else if (samePercent > darkPercent && samePercent > lightPercent) {
+      predictedTone = 'same';
+      confidence = samePercent;
     } else {
-      predictedTone = toneSequence[toneSequence.length - 1] || 'dark';
-      confidence = 50;
+      predictedTone = 'dark';
+      confidence = darkPercent;
     }
 
     return {
       tone: predictedTone,
       confidence: confidence,
       darkPercent: darkPercent,
-      lightPercent: lightPercent
+      lightPercent: lightPercent,
+      samePercent: samePercent
     };
   }
 
@@ -457,12 +468,21 @@ class UIController {
       this.selectedTone = 'dark';
       document.getElementById('btn-tone-dark').classList.add('active');
       document.getElementById('btn-tone-light').classList.remove('active');
+      document.getElementById('btn-tone-same')?.classList.remove('active');
     });
 
     document.getElementById('btn-tone-light')?.addEventListener('click', () => {
       this.selectedTone = 'light';
       document.getElementById('btn-tone-light').classList.add('active');
       document.getElementById('btn-tone-dark').classList.remove('active');
+      document.getElementById('btn-tone-same')?.classList.remove('active');
+    });
+
+    document.getElementById('btn-tone-same')?.addEventListener('click', () => {
+      this.selectedTone = 'same';
+      document.getElementById('btn-tone-same').classList.add('active');
+      document.getElementById('btn-tone-dark').classList.remove('active');
+      document.getElementById('btn-tone-light').classList.remove('active');
     });
 
     // Keyboard hotkeys
@@ -879,8 +899,11 @@ class UIController {
     
     // Provide tactile toast feedback on correctness
     const lastGame = this.engine.history[this.engine.history.length - 1];
+    let toneLabel = ' 🌑';
+    if (this.selectedTone === 'light') toneLabel = ' ☀️';
+    if (this.selectedTone === 'same') toneLabel = ' 🔄';
+
     if (lastGame && lastGame.correct !== null) {
-      const toneLabel = this.selectedTone === 'light' ? ' ☀️' : ' 🌑';
       if (lastGame.correct) {
         this.showToast(`Prediction Correct! (${color === 'R' ? 'Red' : 'Blue'}${toneLabel}) 🔥`, 'success');
       } else {
@@ -960,10 +983,13 @@ class UIController {
       percentage.style.display = 'none';
     } else {
       const isRed = prediction.color === 'R';
-      const isLight = prediction.tone === 'light';
+      let tonePrefix = '🌑 DARK';
+      if (prediction.tone === 'light') tonePrefix = '☀️ LIGHT';
+      if (prediction.tone === 'same') tonePrefix = '🔄 SAME';
+
       orb.classList.add(isRed ? 'predict-red' : 'predict-blue');
       label.textContent = 'Next Predict';
-      value.textContent = `${isLight ? '☀️ LIGHT' : '🌑 DARK'} ${isRed ? 'RED' : 'BLUE'}`;
+      value.textContent = `${tonePrefix} ${isRed ? 'RED' : 'BLUE'}`;
       percentage.textContent = `${prediction.confidence}%`;
       percentage.style.display = 'inline-block';
     }
@@ -976,11 +1002,27 @@ class UIController {
         toneBadge.style.background = 'rgba(255, 255, 255, 0.05)';
         toneBadge.style.color = 'var(--text-muted)';
       } else {
-        const isLight = prediction.tone === 'light';
-        toneBadge.textContent = `Tone Forecast: ${isLight ? '☀️ Light-Colored' : '🌑 Darker'} (${prediction.toneConfidence}%)`;
-        toneBadge.style.background = isLight ? 'rgba(234, 179, 8, 0.2)' : 'rgba(255, 255, 255, 0.08)';
-        toneBadge.style.color = isLight ? '#fde047' : '#cbd5e1';
-        toneBadge.style.border = isLight ? '1px solid rgba(234, 179, 8, 0.4)' : '1px solid rgba(255, 255, 255, 0.15)';
+        let toneLabelStr = '🌑 Darker';
+        let bgStr = 'rgba(255, 255, 255, 0.08)';
+        let colorStr = '#cbd5e1';
+        let borderStr = '1px solid rgba(255, 255, 255, 0.15)';
+
+        if (prediction.tone === 'light') {
+          toneLabelStr = '☀️ Light-Colored';
+          bgStr = 'rgba(234, 179, 8, 0.2)';
+          colorStr = '#fde047';
+          borderStr = '1px solid rgba(234, 179, 8, 0.4)';
+        } else if (prediction.tone === 'same') {
+          toneLabelStr = '🔄 Same Tone';
+          bgStr = 'rgba(14, 165, 233, 0.2)';
+          colorStr = '#38bdf8';
+          borderStr = '1px solid rgba(14, 165, 233, 0.4)';
+        }
+
+        toneBadge.textContent = `Tone Forecast: ${toneLabelStr} (${prediction.toneConfidence}%)`;
+        toneBadge.style.background = bgStr;
+        toneBadge.style.color = colorStr;
+        toneBadge.style.border = borderStr;
       }
     }
 
@@ -998,17 +1040,25 @@ class UIController {
     fillBlue.style.width = `${bluePercent}%`;
 
     // --- UPDATE TONE SPLIT PROBABILITY BAR ---
-    const darkPercent = prediction ? prediction.darkPercent : 50;
-    const lightPercent = prediction ? prediction.lightPercent : 50;
+    const darkPercent = prediction ? prediction.darkPercent : 33;
+    const lightPercent = prediction ? prediction.lightPercent : 33;
+    const samePercent = prediction ? (prediction.samePercent !== undefined ? prediction.samePercent : 34) : 34;
 
-    document.getElementById('prob-dark-percent').textContent = `${darkPercent}%`;
-    document.getElementById('prob-light-percent').textContent = `${lightPercent}%`;
+    const darkEl = document.getElementById('prob-dark-percent');
+    const lightEl = document.getElementById('prob-light-percent');
+    const sameEl = document.getElementById('prob-same-percent');
+
+    if (darkEl) darkEl.textContent = `${darkPercent}%`;
+    if (lightEl) lightEl.textContent = `${lightPercent}%`;
+    if (sameEl) sameEl.textContent = `${samePercent}%`;
     
     const fillDark = document.getElementById('prob-fill-dark');
     const fillLight = document.getElementById('prob-fill-light');
+    const fillSame = document.getElementById('prob-fill-same');
     
     if (fillDark) fillDark.style.width = `${darkPercent}%`;
     if (fillLight) fillLight.style.width = `${lightPercent}%`;
+    if (fillSame) fillSame.style.width = `${samePercent}%`;
 
     // --- UPDATE STATS GRID ---
     document.getElementById('stat-total-games').textContent = stats.total;
@@ -1049,7 +1099,11 @@ class UIController {
 
       recentHistory.forEach(game => {
         const node = document.createElement('div');
-        node.className = `timeline-node ${game.actual === 'R' ? 'node-red' : 'node-blue'} ${game.tone === 'light' ? 'node-light' : ''}`;
+        let toneClass = '';
+        if (game.tone === 'light') toneClass = 'node-light';
+        if (game.tone === 'same') toneClass = 'node-same';
+
+        node.className = `timeline-node ${game.actual === 'R' ? 'node-red' : 'node-blue'} ${toneClass}`;
         node.textContent = game.actual;
         node.title = `Game result: ${game.actual === 'R' ? 'Red' : 'Blue'} (${game.tone || 'dark'}). Click to delete.`;
 
@@ -1143,7 +1197,9 @@ class UIController {
         const tdActual = document.createElement('td');
         const badgeAct = document.createElement('span');
         badgeAct.className = `cell-badge ${game.actual === 'R' ? 'badge-red' : 'badge-blue'}`;
-        const toneIcon = game.tone === 'light' ? ' ☀️' : ' 🌑';
+        let toneIcon = ' 🌑';
+        if (game.tone === 'light') toneIcon = ' ☀️';
+        if (game.tone === 'same') toneIcon = ' 🔄';
         badgeAct.textContent = `${game.actual === 'R' ? 'Red' : 'Blue'}${toneIcon}`;
         tdActual.appendChild(badgeAct);
         tr.appendChild(tdActual);
@@ -1153,7 +1209,9 @@ class UIController {
         if (game.predicted) {
           const badgePred = document.createElement('span');
           badgePred.className = `cell-badge ${game.predicted === 'R' ? 'badge-red' : 'badge-blue'}`;
-          const predToneIcon = game.predictedTone === 'light' ? ' ☀️' : ' 🌑';
+          let predToneIcon = ' 🌑';
+          if (game.predictedTone === 'light') predToneIcon = ' ☀️';
+          if (game.predictedTone === 'same') predToneIcon = ' 🔄';
           badgePred.textContent = `${game.predicted === 'R' ? 'Red' : 'Blue'}${predToneIcon}`;
           tdPred.appendChild(badgePred);
         } else {

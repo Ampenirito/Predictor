@@ -1037,4 +1037,18 @@ footer {
   pointer-events: none;
 }
 
+.timeline-node.node-same {
+  border-color: rgba(56, 189, 248, 0.8) !important;
+  box-shadow: 0 0 12px rgba(14, 165, 233, 0.4) !important;
+}
+
+.timeline-node.node-same::before {
+  content: '🔄';
+  position: absolute;
+  top: -6px;
+  left: -5px;
+  font-size: 10px;
+  pointer-events: none;
+}
+
 
