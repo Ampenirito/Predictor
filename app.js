@@ -119,14 +119,14 @@ class PatternEngine {
     };
   }
 
-  // Scan history to predict Tone for a specific side ('leftTone' or 'rightTone')
-  predictSideTone(sideKey = 'leftTone') {
+  // Scan history to predict the next Winning Tone (dark, light, or same)
+  predictWinningToneNext() {
     const totalGames = this.history.length;
     if (totalGames === 0) {
       return { tone: 'dark', confidence: 33, darkPercent: 33, lightPercent: 33, samePercent: 34 };
     }
 
-    const toneSequence = this.history.map(g => g[sideKey] || 'dark');
+    const toneSequence = this.history.map(g => g.winningTone || (g.actual === 'R' ? g.leftTone : g.rightTone) || 'dark');
     let weightedDarkScore = 0;
     let weightedLightScore = 0;
     let weightedSameScore = 0;
@@ -172,9 +172,7 @@ class PatternEngine {
       lightPercent = Math.round((weightedLightScore / totalWeight) * 100);
       samePercent = 100 - darkPercent - lightPercent;
     } else {
-      let globalD = 0;
-      let globalL = 0;
-      let globalS = 0;
+      let globalD = 0, globalL = 0, globalS = 0;
       toneSequence.forEach(val => {
         if (val === 'dark') globalD++;
         if (val === 'light') globalL++;
@@ -222,22 +220,24 @@ class PatternEngine {
 
   // Add actual result with Left and Right Tones
   addResult(actualColor, leftTone = 'dark', rightTone = 'dark') {
+    const winningTone = actualColor === 'R' ? leftTone : rightTone;
+    const losingTone  = actualColor === 'R' ? rightTone : leftTone;
+
     const pred = this.currentPrediction;
     const isCorrectColor = (pred && pred.color) ? (pred.color === actualColor) : null;
-    const isCorrectLeftTone = (pred && pred.leftTone) ? (pred.leftTone === leftTone) : null;
-    const isCorrectRightTone = (pred && pred.rightTone) ? (pred.rightTone === rightTone) : null;
+    const isCorrectWinningTone = (pred && pred.winningTone) ? (pred.winningTone === winningTone) : null;
 
     const newGame = {
       id: Math.random().toString(36).substr(2, 9),
       actual: actualColor,
       leftTone: leftTone || 'dark',
       rightTone: rightTone || 'dark',
+      winningTone: winningTone,
+      losingTone: losingTone,
       predicted: (pred && pred.color) ? pred.color : null,
-      predictedLeftTone: (pred && pred.leftTone) ? pred.leftTone : null,
-      predictedRightTone: (pred && pred.rightTone) ? pred.rightTone : null,
+      predictedWinningTone: (pred && pred.winningTone) ? pred.winningTone : null,
       correct: isCorrectColor,
-      correctLeftTone: isCorrectLeftTone,
-      correctRightTone: isCorrectRightTone
+      correctTone: isCorrectWinningTone
     };
 
     this.history.push(newGame);
@@ -264,29 +264,28 @@ class PatternEngine {
     this.currentPrediction = null;
 
     for (const item of rawActuals) {
-      // Make prediction based on accumulated history so far
+      const winningTone = item.actual === 'R' ? item.leftTone : item.rightTone;
+      const losingTone  = item.actual === 'R' ? item.rightTone : item.leftTone;
+
       const colorPred = this.predictNext();
-      const leftTonePred = this.predictSideTone('leftTone');
-      const rightTonePred = this.predictSideTone('rightTone');
+      const winningTonePred = this.predictWinningToneNext();
 
       const isCorrectColor = (colorPred && colorPred.color) ? (colorPred.color === item.actual) : null;
-      const isCorrectLeftTone = (leftTonePred && leftTonePred.tone) ? (leftTonePred.tone === item.leftTone) : null;
-      const isCorrectRightTone = (rightTonePred && rightTonePred.tone) ? (rightTonePred.tone === item.rightTone) : null;
+      const isCorrectWinningTone = (winningTonePred && winningTonePred.tone) ? (winningTonePred.tone === winningTone) : null;
 
       this.history.push({
         id: Math.random().toString(36).substr(2, 9),
         actual: item.actual,
         leftTone: item.leftTone,
         rightTone: item.rightTone,
+        winningTone: winningTone,
+        losingTone: losingTone,
         predicted: (colorPred && colorPred.color) ? colorPred.color : null,
-        predictedLeftTone: (leftTonePred && leftTonePred.tone) ? leftTonePred.tone : null,
-        predictedRightTone: (rightTonePred && rightTonePred.tone) ? rightTonePred.tone : null,
+        predictedWinningTone: (winningTonePred && winningTonePred.tone) ? winningTonePred.tone : null,
         correct: isCorrectColor,
-        correctLeftTone: isCorrectLeftTone,
-        correctRightTone: isCorrectRightTone
+        correctTone: isCorrectWinningTone
       });
 
-      // Update current prediction to be the latest prediction for the NEXT game
       this.updatePrediction();
     }
 
@@ -303,8 +302,7 @@ class PatternEngine {
   // Recalculate predictions
   updatePrediction() {
     const colorPred = this.predictNext();
-    const leftTonePred = this.predictSideTone('leftTone');
-    const rightTonePred = this.predictSideTone('rightTone');
+    const winningTonePred = this.predictWinningToneNext();
 
     this.currentPrediction = {
       color: colorPred.color,
@@ -312,30 +310,32 @@ class PatternEngine {
       redPercent: colorPred.redPercent,
       bluePercent: colorPred.bluePercent,
       breakdown: colorPred.breakdown,
-      leftTone: leftTonePred.tone,
-      leftConfidence: leftTonePred.confidence,
-      leftDark: leftTonePred.darkPercent,
-      leftLight: leftTonePred.lightPercent,
-      leftSame: leftTonePred.samePercent,
-      rightTone: rightTonePred.tone,
-      rightConfidence: rightTonePred.confidence,
-      rightDark: rightTonePred.darkPercent,
-      rightLight: rightTonePred.lightPercent,
-      rightSame: rightTonePred.samePercent
+      winningTone: winningTonePred.tone,
+      toneConfidence: winningTonePred.confidence,
+      darkPercent: winningTonePred.darkPercent,
+      lightPercent: winningTonePred.lightPercent,
+      samePercent: winningTonePred.samePercent
     };
   }
 
-  // Load from array of raw outcomes ('R' or 'B' or objects { actual, tone })
+  // Load from array of raw outcomes
   loadRawSequence(sequence) {
     this.history = sequence.map(item => {
       const color = typeof item === 'string' ? item : item.actual;
-      const tone = typeof item === 'object' && item.tone ? item.tone : 'dark';
+      const leftTone = typeof item === 'object' && item.leftTone ? item.leftTone : (typeof item === 'object' && item.tone ? item.tone : 'dark');
+      const rightTone = typeof item === 'object' && item.rightTone ? item.rightTone : 'dark';
+      const winningTone = color === 'R' ? leftTone : rightTone;
+      const losingTone = color === 'R' ? rightTone : leftTone;
+
       return {
         id: Math.random().toString(36).substr(2, 9),
         actual: color,
-        tone: tone,
+        leftTone: leftTone,
+        rightTone: rightTone,
+        winningTone: winningTone,
+        losingTone: losingTone,
         predicted: null,
-        predictedTone: null,
+        predictedWinningTone: null,
         correct: null,
         correctTone: null
       };
@@ -351,43 +351,44 @@ class PatternEngine {
     const correctCount = withPrediction.filter(g => g.correct === true).length;
     const winrate = predictedCount > 0 ? Math.round((correctCount / predictedCount) * 100) : 0;
 
-    // Helper for computing winrates for tone prediction
-    const computeToneStats = (predicate) => {
-      const matched = this.history.filter(predicate);
-      const wins = matched.filter(g => g.correct === true);
-      const totalCount = matched.length;
-      const winCount = wins.length;
+    // Helper: Overall Tone Win Rate (When Dark/Light/Same was present, how often did that tone WIN?)
+    const getOverallToneWinrate = (targetTone) => {
+      const gamesWithTone = this.history.filter(g => g.leftTone === targetTone || g.rightTone === targetTone);
+      const winsWithTone = gamesWithTone.filter(g => g.winningTone === targetTone);
+      const totalCount = gamesWithTone.length;
+      const winCount = winsWithTone.length;
       const rate = totalCount > 0 ? Math.round((winCount / totalCount) * 100) : 0;
       return { total: totalCount, wins: winCount, rate };
     };
 
-    // Left Side Tone Win Rates
-    const leftDark = computeToneStats(g => (g.leftTone === 'dark' || g.leftTone === 'darker') && g.predicted !== null);
-    const leftLight = computeToneStats(g => g.leftTone === 'light' && g.predicted !== null);
-    const leftSame = computeToneStats(g => g.leftTone === 'same' && g.predicted !== null);
+    // Helper: Side Victory Rate by Tone (When Left/Right was Tone X, how often did that Side WIN?)
+    const getSideToneWinrate = (sideKey, targetTone, winningColor) => {
+      const sideGames = this.history.filter(g => g[sideKey] === targetTone);
+      const sideWins = sideGames.filter(g => g.actual === winningColor);
+      const totalCount = sideGames.length;
+      const winCount = sideWins.length;
+      const rate = totalCount > 0 ? Math.round((winCount / totalCount) * 100) : 0;
+      return { total: totalCount, wins: winCount, rate };
+    };
 
-    // Right Side Tone Win Rates
-    const rightDark = computeToneStats(g => (g.rightTone === 'dark' || g.rightTone === 'darker') && g.predicted !== null);
-    const rightLight = computeToneStats(g => g.rightTone === 'light' && g.predicted !== null);
-    const rightSame = computeToneStats(g => g.rightTone === 'same' && g.predicted !== null);
+    // Overall Winning Tone Rates
+    const overallDark = getOverallToneWinrate('dark');
+    const overallLight = getOverallToneWinrate('light');
+    const overallSame = getOverallToneWinrate('same');
 
-    // Overall Tone Win Rates (Left + Right combined)
-    const overallDarkCount = leftDark.total + rightDark.total;
-    const overallDarkWins = leftDark.wins + rightDark.wins;
-    const overallDarkRate = overallDarkCount > 0 ? Math.round((overallDarkWins / overallDarkCount) * 100) : 0;
+    // Left Side Victory Rates by Tone (When Left is X, how often RED wins)
+    const leftDark = getSideToneWinrate('leftTone', 'dark', 'R');
+    const leftLight = getSideToneWinrate('leftTone', 'light', 'R');
+    const leftSame = getSideToneWinrate('leftTone', 'same', 'R');
 
-    const overallLightCount = leftLight.total + rightLight.total;
-    const overallLightWins = leftLight.wins + rightLight.wins;
-    const overallLightRate = overallLightCount > 0 ? Math.round((overallLightWins / overallLightCount) * 100) : 0;
-
-    const overallSameCount = leftSame.total + rightSame.total;
-    const overallSameWins = leftSame.wins + rightSame.wins;
-    const overallSameRate = overallSameCount > 0 ? Math.round((overallSameWins / overallSameCount) * 100) : 0;
+    // Right Side Victory Rates by Tone (When Right is X, how often BLUE wins)
+    const rightDark = getSideToneWinrate('rightTone', 'dark', 'B');
+    const rightLight = getSideToneWinrate('rightTone', 'light', 'B');
+    const rightSame = getSideToneWinrate('rightTone', 'same', 'B');
 
     let currentStreak = 0;
     let streakType = null; // 'win' or 'loss'
 
-    // Walk backwards to find active prediction streak
     for (let i = this.history.length - 1; i >= 0; i--) {
       const g = this.history[i];
       if (g.correct === null) continue;
@@ -403,7 +404,6 @@ class PatternEngine {
       }
     }
 
-    // Actual Outcome Streaks (e.g. Red streak or Blue streak)
     let outcomeStreak = 0;
     let outcomeType = null;
     for (let i = this.history.length - 1; i >= 0; i--) {
@@ -425,9 +425,9 @@ class PatternEngine {
       winrate,
       predictionStreak: currentStreak > 0 ? { count: currentStreak, type: streakType } : null,
       outcomeStreak: outcomeStreak > 0 ? { count: outcomeStreak, type: outcomeType } : null,
-      overallDark: { rate: overallDarkRate, wins: overallDarkWins, total: overallDarkCount },
-      overallLight: { rate: overallLightRate, wins: overallLightWins, total: overallLightCount },
-      overallSame: { rate: overallSameRate, wins: overallSameWins, total: overallSameCount },
+      overallDark,
+      overallLight,
+      overallSame,
       leftDark,
       leftLight,
       leftSame,
@@ -1301,9 +1301,10 @@ class UIController {
         const tdActual = document.createElement('td');
         const badgeAct = document.createElement('span');
         badgeAct.className = `cell-badge ${game.actual === 'R' ? 'badge-red' : 'badge-blue'}`;
+        const winSym = getSym(game.winningTone || (game.actual === 'R' ? game.leftTone : game.rightTone));
         const lActSym = getSym(game.leftTone);
         const rActSym = getSym(game.rightTone);
-        badgeAct.textContent = `${game.actual === 'R' ? 'Red' : 'Blue'} (L:${lActSym} R:${rActSym})`;
+        badgeAct.textContent = `${game.actual === 'R' ? 'Red' : 'Blue'} ${winSym} (L:${lActSym} R:${rActSym})`;
         tdActual.appendChild(badgeAct);
         tr.appendChild(tdActual);
 
