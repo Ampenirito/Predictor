@@ -21,7 +21,8 @@ class PatternEngine {
       return { color: null, confidence: 50, redPercent: 50, bluePercent: 50, breakdown: [] };
     }
 
-    const actualSequence = this.history.map(g => g.actual);
+    // Filter out cancelled matches for Red/Blue pattern matching
+    const actualSequence = this.history.filter(g => g.actual === 'R' || g.actual === 'B').map(g => g.actual);
     let weightedRedScore = 0;
     let weightedBlueScore = 0;
     const breakdown = [];
@@ -126,7 +127,8 @@ class PatternEngine {
       return { tone: 'dark', confidence: 33, darkPercent: 33, lightPercent: 33, samePercent: 34 };
     }
 
-    const toneSequence = this.history.map(g => g.winningTone || (g.actual === 'R' ? g.leftTone : g.rightTone) || 'dark');
+    // Filter out cancelled games without a winning tone
+    const toneSequence = this.history.filter(g => g.winningTone).map(g => g.winningTone);
     let weightedDarkScore = 0;
     let weightedLightScore = 0;
     let weightedSameScore = 0;
@@ -220,12 +222,13 @@ class PatternEngine {
 
   // Add actual result with Left and Right Tones
   addResult(actualColor, leftTone = 'dark', rightTone = 'dark') {
-    const winningTone = actualColor === 'R' ? leftTone : rightTone;
-    const losingTone  = actualColor === 'R' ? rightTone : leftTone;
+    const isCancelled = actualColor === 'C';
+    const winningTone = isCancelled ? null : (actualColor === 'R' ? leftTone : rightTone);
+    const losingTone  = isCancelled ? null : (actualColor === 'R' ? rightTone : leftTone);
 
     const pred = this.currentPrediction;
-    const isCorrectColor = (pred && pred.color) ? (pred.color === actualColor) : null;
-    const isCorrectWinningTone = (pred && pred.winningTone) ? (pred.winningTone === winningTone) : null;
+    const isCorrectColor = isCancelled ? null : ((pred && pred.color) ? (pred.color === actualColor) : null);
+    const isCorrectWinningTone = isCancelled ? null : ((pred && pred.winningTone) ? (pred.winningTone === winningTone) : null);
 
     const newGame = {
       id: Math.random().toString(36).substr(2, 9),
@@ -264,14 +267,15 @@ class PatternEngine {
     this.currentPrediction = null;
 
     for (const item of rawActuals) {
-      const winningTone = item.actual === 'R' ? item.leftTone : item.rightTone;
-      const losingTone  = item.actual === 'R' ? item.rightTone : item.leftTone;
+      const isCancelled = item.actual === 'C';
+      const winningTone = isCancelled ? null : (item.actual === 'R' ? item.leftTone : item.rightTone);
+      const losingTone  = isCancelled ? null : (item.actual === 'R' ? item.rightTone : item.leftTone);
 
       const colorPred = this.predictNext();
       const winningTonePred = this.predictWinningToneNext();
 
-      const isCorrectColor = (colorPred && colorPred.color) ? (colorPred.color === item.actual) : null;
-      const isCorrectWinningTone = (winningTonePred && winningTonePred.tone) ? (winningTonePred.tone === winningTone) : null;
+      const isCorrectColor = isCancelled ? null : ((colorPred && colorPred.color) ? (colorPred.color === item.actual) : null);
+      const isCorrectWinningTone = isCancelled ? null : ((winningTonePred && winningTonePred.tone) ? (winningTonePred.tone === winningTone) : null);
 
       this.history.push({
         id: Math.random().toString(36).substr(2, 9),
@@ -324,8 +328,9 @@ class PatternEngine {
       const color = typeof item === 'string' ? item : item.actual;
       const leftTone = typeof item === 'object' && item.leftTone ? item.leftTone : (typeof item === 'object' && item.tone ? item.tone : 'dark');
       const rightTone = typeof item === 'object' && item.rightTone ? item.rightTone : 'dark';
-      const winningTone = color === 'R' ? leftTone : rightTone;
-      const losingTone = color === 'R' ? rightTone : leftTone;
+      const isCancelled = color === 'C';
+      const winningTone = isCancelled ? null : (color === 'R' ? leftTone : rightTone);
+      const losingTone = isCancelled ? null : (color === 'R' ? rightTone : leftTone);
 
       return {
         id: Math.random().toString(36).substr(2, 9),
@@ -346,14 +351,14 @@ class PatternEngine {
   // Get statistics
   getStats() {
     const total = this.history.length;
-    const withPrediction = this.history.filter(g => g.predicted !== null);
+    const withPrediction = this.history.filter(g => g.predicted !== null && g.actual !== 'C');
     const predictedCount = withPrediction.length;
     const correctCount = withPrediction.filter(g => g.correct === true).length;
     const winrate = predictedCount > 0 ? Math.round((correctCount / predictedCount) * 100) : 0;
 
     // Helper: Overall Tone Win Rate (When Dark/Light/Same was present, how often did that tone WIN?)
     const getOverallToneWinrate = (targetTone) => {
-      const gamesWithTone = this.history.filter(g => g.leftTone === targetTone || g.rightTone === targetTone);
+      const gamesWithTone = this.history.filter(g => g.actual !== 'C' && (g.leftTone === targetTone || g.rightTone === targetTone));
       const winsWithTone = gamesWithTone.filter(g => g.winningTone === targetTone);
       const totalCount = gamesWithTone.length;
       const winCount = winsWithTone.length;
@@ -363,7 +368,7 @@ class PatternEngine {
 
     // Helper: Side Victory Rate by Tone (When Left/Right was Tone X, how often did that Side WIN?)
     const getSideToneWinrate = (sideKey, targetTone, winningColor) => {
-      const sideGames = this.history.filter(g => g[sideKey] === targetTone);
+      const sideGames = this.history.filter(g => g.actual !== 'C' && g[sideKey] === targetTone);
       const sideWins = sideGames.filter(g => g.actual === winningColor);
       const totalCount = sideGames.length;
       const winCount = sideWins.length;
@@ -391,7 +396,7 @@ class PatternEngine {
 
     for (let i = this.history.length - 1; i >= 0; i--) {
       const g = this.history[i];
-      if (g.correct === null) continue;
+      if (g.actual === 'C' || g.correct === null) continue;
       
       const type = g.correct ? 'win' : 'loss';
       if (streakType === null) {
@@ -408,6 +413,7 @@ class PatternEngine {
     let outcomeType = null;
     for (let i = this.history.length - 1; i >= 0; i--) {
       const actual = this.history[i].actual;
+      if (actual === 'C') continue; // Skip cancelled matches in streak calculation
       if (outcomeType === null) {
         outcomeType = actual;
         outcomeStreak = 1;
@@ -535,6 +541,7 @@ class UIController {
     // Outcomes buttons
     document.getElementById('btn-outcome-red').addEventListener('click', () => this.addOutcome('R'));
     document.getElementById('btn-outcome-blue').addEventListener('click', () => this.addOutcome('B'));
+    document.getElementById('btn-outcome-cancelled')?.addEventListener('click', () => this.addOutcome('C'));
 
     // Left Side Tone Toggle Buttons
     ['dark', 'light', 'same'].forEach(tone => {
@@ -566,6 +573,8 @@ class UIController {
         this.addOutcome('R');
       } else if (e.key === 'b' || e.key === 'B' || e.key === 'ArrowRight') {
         this.addOutcome('B');
+      } else if (e.key === 'c' || e.key === 'C') {
+        this.addOutcome('C');
       }
     });
 
@@ -974,7 +983,9 @@ class UIController {
     const leftSymbol = getSymbol(this.selectedLeftTone);
     const rightSymbol = getSymbol(this.selectedRightTone);
 
-    if (lastGame && lastGame.correct !== null) {
+    if (color === 'C') {
+      this.showToast('Logged Cancelled Match 🚫', 'info');
+    } else if (lastGame && lastGame.correct !== null) {
       if (lastGame.correct) {
         this.showToast(`Prediction Correct! (${color === 'R' ? 'Red' : 'Blue'} L:${leftSymbol} R:${rightSymbol}) 🔥`, 'success');
       } else {
@@ -1188,15 +1199,16 @@ class UIController {
 
       recentHistory.forEach(game => {
         const node = document.createElement('div');
-        node.className = `timeline-node ${game.actual === 'R' ? 'node-red' : 'node-blue'}`;
+        const isCancelled = game.actual === 'C';
+        node.className = `timeline-node ${isCancelled ? 'node-cancelled' : (game.actual === 'R' ? 'node-red' : 'node-blue')}`;
         node.style.position = 'relative';
-        node.textContent = game.actual;
+        node.textContent = isCancelled ? '🚫' : game.actual;
 
         const getSym = (t) => t === 'light' ? '☀️' : t === 'same' ? '🔄' : '🌑';
         const lSym = getSym(game.leftTone);
         const rSym = getSym(game.rightTone);
 
-        node.title = `Game result: ${game.actual === 'R' ? 'Red' : 'Blue'} | Left Tone: ${game.leftTone || 'dark'}, Right Tone: ${game.rightTone || 'dark'}. Click to delete.`;
+        node.title = `Game result: ${isCancelled ? 'Cancelled' : (game.actual === 'R' ? 'Red' : 'Blue')} | Left Tone: ${game.leftTone || 'dark'}, Right Tone: ${game.rightTone || 'dark'}. Click to delete.`;
 
         // Small dual tone indicator overlay
         const toneInd = document.createElement('span');
@@ -1210,7 +1222,7 @@ class UIController {
         node.appendChild(toneInd);
 
         // Check if prediction was made for this
-        if (game.predicted) {
+        if (game.predicted && !isCancelled) {
           const status = document.createElement('div');
           status.className = `node-prediction-status ${game.correct ? 'status-correct' : 'status-incorrect'}`;
           status.textContent = game.correct ? 'Win' : 'Loss';
@@ -1300,11 +1312,12 @@ class UIController {
         // Actual outcome badge
         const tdActual = document.createElement('td');
         const badgeAct = document.createElement('span');
-        badgeAct.className = `cell-badge ${game.actual === 'R' ? 'badge-red' : 'badge-blue'}`;
-        const winSym = getSym(game.winningTone || (game.actual === 'R' ? game.leftTone : game.rightTone));
+        const isCancelled = game.actual === 'C';
+        badgeAct.className = `cell-badge ${isCancelled ? 'badge-cancelled' : (game.actual === 'R' ? 'badge-red' : 'badge-blue')}`;
+        const winSym = isCancelled ? '' : getSym(game.winningTone || (game.actual === 'R' ? game.leftTone : game.rightTone));
         const lActSym = getSym(game.leftTone);
         const rActSym = getSym(game.rightTone);
-        badgeAct.textContent = `${game.actual === 'R' ? 'Red' : 'Blue'} ${winSym} (L:${lActSym} R:${rActSym})`;
+        badgeAct.textContent = isCancelled ? `🚫 Cancelled (L:${lActSym} R:${rActSym})` : `${game.actual === 'R' ? 'Red' : 'Blue'} ${winSym} (L:${lActSym} R:${rActSym})`;
         tdActual.appendChild(badgeAct);
         tr.appendChild(tdActual);
 
@@ -1328,7 +1341,9 @@ class UIController {
         tdEval.style.justifyContent = 'space-between';
         tdEval.style.alignItems = 'center';
 
-        if (game.predicted) {
+        if (isCancelled) {
+          tdEval.innerHTML = '<span class="cell-badge badge-neutral">Cancelled (Void)</span>';
+        } else if (game.predicted) {
           const badgeStatus = document.createElement('span');
           badgeStatus.className = `cell-badge ${game.correct ? 'badge-success' : 'badge-danger'}`;
           badgeStatus.textContent = game.correct ? 'Correct' : 'Incorrect';

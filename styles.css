@@ -391,6 +391,21 @@ header {
   transform: translateY(1px);
 }
 
+.btn-cancelled {
+  background: linear-gradient(135deg, #475569 0%, #334155 100%);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn-cancelled:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(148, 163, 184, 0.3);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.btn-cancelled:active {
+  transform: translateY(1px);
+}
+
 /* Stats Details Panel */
 .stats-detail-card {
   padding: 24px;
@@ -572,6 +587,15 @@ header {
   border-color: rgba(255, 255, 255, 0.6);
 }
 
+.node-cancelled {
+  background: radial-gradient(circle at 35% 35%, #94a3b8, #475569 70%);
+  box-shadow: 0 0 10px rgba(148, 163, 184, 0.4);
+}
+
+.node-cancelled:hover {
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
 .node-prediction-status {
   position: absolute;
   bottom: -15px;
@@ -680,6 +704,12 @@ tr:hover td {
   background-color: var(--color-blue-bg);
   color: var(--color-blue);
   border: 1px solid var(--color-blue-glow);
+}
+
+.badge-cancelled {
+  background-color: rgba(148, 163, 184, 0.15);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.3);
 }
 
 .badge-success {
